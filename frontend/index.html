@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Private Digit Recognition</title>
+  <style>
+    canvas { border: 1px solid #000; background: #fff; }
+  </style>
+</head>
+<body>
+  <h2>Vẽ chữ số (0–9)</h2>
+  <canvas id="canvas" width="280" height="280"></canvas><br>
+  <button onclick="clearCanvas()">Xóa</button>
+  <button onclick="predict()">Dự đoán</button>
+  <p id="result"></p>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    canvas.addEventListener('mousedown', () => drawing = true);
+    canvas.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mousemove', draw);
+
+    function draw(e) {
+      if (!drawing) return;
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(e.offsetX, e.offsetY, 10, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function predict() {
+      const imgData = ctx.getImageData(0, 0, 280, 280);
+      const canvasTmp = document.createElement('canvas');
+      const ctxTmp = canvasTmp.getContext('2d');
+      canvasTmp.width = 28;
+      canvasTmp.height = 28;
+      ctxTmp.drawImage(canvas, 0, 0, 28, 28);
+      const smallImg = ctxTmp.getImageData(0, 0, 28, 28);
+      const input = [];
+
+      for (let i = 0; i < smallImg.data.length; i += 4) {
+        // Chuyển về thang độ xám [0–1]
+        const gray = 1 - (smallImg.data[i] / 255);
+        input.push(gray);
+      }
+
+      fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: input })
+      })
+      .then(res => res.json())
+      .then(data => document.getElementById('result').innerText = 'Dự đoán: ' + data.prediction);
+    }
+  </script>
+</body>
+</html>
